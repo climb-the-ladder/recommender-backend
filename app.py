@@ -1,52 +1,29 @@
 from flask import Flask, request, jsonify
 import joblib
-import os
 import pandas as pd
-import sqlite3
-
-# Connect to database
-conn = sqlite3.connect("user_history.db")
-cursor = conn.cursor()
-
-# Create table if not exists
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS recommendations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        gpa REAL,
-        coding_skills INTEGER,
-        communication_skills INTEGER,
-        recommended_career TEXT
-    )
-""")
-conn.commit()
-
-@app.route("/recommend", methods=["POST"])
-def recommend():
-    data = request.json
-    features = pd.DataFrame([data])
-    career = model.predict(features)[0]
-
-    # Save to database
-    cursor.execute("INSERT INTO recommendations (gpa, coding_skills, communication_skills, recommended_career) VALUES (?, ?, ?, ?)", 
-                   (data["GPA"], data["Coding_Skills"], data["Communication_Skills"], career))
-    conn.commit()
-
-    return jsonify({"recommended_career": career})
-
+import os
 
 app = Flask(__name__)
 
-#w load trained model
-script_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(script_dir, "../recommender-models/career_recommender.pkl")
+model_path = os.path.join(os.path.dirname(__file__), "../recommender-models/career_recommender.pkl")
 model = joblib.load(model_path)
 
-@app.route("/recommend", methods=["POST"])
-def recommend():
-    data = request.json  # Get JSON data from request
-    features = pd.DataFrame([data])  # Convert input to DataFrame
-    career = model.predict(features)[0]  # Make prediction
-    return jsonify({"recommended_career": career})  # Return response
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.json  # Get JSON data from the request
+    user_data = pd.DataFrame([data])  # Convert to DataFrame
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    #redict probabilities for all career classes
+    probabilities = model.predict_proba(user_data)[0]
+    career_classes = model.classes_
+
+    # Prepare top 3 career predictions (now we only predict 1 for the moment in tests)
+    predictions = sorted(
+        zip(career_classes, probabilities), key=lambda x: x[1], reverse=True
+    )[:3]
+
+    response = [{"career": career, "probability": round(prob * 100, 2)} for career, prob in predictions]
+    return jsonify({"predictions": response})
+
+if __name__ == '__main__':
+    app.run(port=5001, debug=True)

@@ -6,11 +6,15 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const PYTHON_AI_URL = "http://127.0.0.1:5001/predict"; // This is the Python AI model API
+const AI_API_URL = "http://127.0.0.1:5001/predict"; // AI API URL
 
 app.post("/api/recommend", async (req, res) => {
     try {
-        const response = await axios.post(PYTHON_AI_URL, req.body);
+        console.log("Received data from frontend:", req.body); // Debugging
+
+        const response = await axios.post(AI_API_URL, req.body);
+        console.log("Received prediction from AI:", response.data); // Debugging
+
         res.json(response.data);
     } catch (error) {
         console.error("Error connecting to AI model:", error);
