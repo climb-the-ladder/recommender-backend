@@ -34,12 +34,13 @@ def chat():
     message = data.get('message')
     career = data.get('career')
     gpa = data.get('gpa')
+    subject_grades = data.get('subject_grades', {})
     session_id = data.get('session_id', 'default')
     
     if not message:
         return jsonify({"error": "Missing message"}), 400
     
-    # Call the handle_chat function with all parameters including session_id
-    response = handle_chat(message, career, gpa, session_id)
+    # Call the handle_chat function with all parameters including subject_grades
+    response = handle_chat(message, career, gpa, subject_grades, session_id)
     
     return jsonify({"response": response})
