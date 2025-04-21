@@ -1,11 +1,13 @@
 import sys
 import os
 from flask import Blueprint, request, jsonify
+import requests
 
 # Add recommender-ai to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../recommender-ai')))
 
-from chatbot import CareerChatbot  # ✅ Import works now
+from chatbot import CareerChatbot
+from gpt_chatbot import handle_chat
 
 chatbot = Blueprint('chatbot', __name__)
 career_chatbot = CareerChatbot()
@@ -25,3 +27,19 @@ def chatbot_recommend():
         "recommended_universities": unis,
         "similar_careers": similar_careers
     })
+
+@chatbot.route('/api/chat', methods=['POST'])
+def chat():
+    data = request.json
+    message = data.get('message')
+    career = data.get('career')
+    gpa = data.get('gpa')
+    session_id = data.get('session_id', 'default')
+    
+    if not message:
+        return jsonify({"error": "Missing message"}), 400
+    
+    # Call the handle_chat function with all parameters including session_id
+    response = handle_chat(message, career, gpa, session_id)
+    
+    return jsonify({"response": response})
