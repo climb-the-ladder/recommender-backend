@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 import requests
 
 # Add recommender-ai to the system path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../recommender-ai')))
+sys.path.append('/recommender-ai')
 
 from chatbot import CareerChatbot
 from gpt_chatbot import handle_chat
