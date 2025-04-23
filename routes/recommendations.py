@@ -5,7 +5,7 @@ import os
 recommendation = Blueprint('recommendation', __name__)
 
 # Use environment variable with fallback to localhost for development
-AI_API_URL = os.environ.get("AI_API_URL", "http://127.0.0.1:5001/predict")
+AI_API_URL = os.environ.get("AI_API_URL", "http://localhost:5001/predict")
 
 @recommendation.route('/api/predict', methods=['POST'])
 def get_prediction():
