@@ -7,9 +7,13 @@ RUN apt-get update && apt-get install -y git
 
 # The repository URL will be passed as a build argument
 ARG RECOMMENDER_AI_REPO=https://github.com/climb-the-ladder/recommender-ai.git
+ARG RECOMMENDER_MODELS_REPO=https://github.com/climb-the-ladder/recommender-models.git
+ARG RECOMMENDER_DATA_REPO=https://github.com/climb-the-ladder/recommender-data.git
 
 # Clone the recommender-ai repository
 RUN git clone ${RECOMMENDER_AI_REPO} /recommender-ai
+RUN git clone ${RECOMMENDER_MODELS_REPO} /recommender-models
+RUN git clone ${RECOMMENDER_DATA_REPO} /recommender-data
 
 # Copy application files
 COPY . .
