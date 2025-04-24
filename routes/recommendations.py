@@ -79,8 +79,12 @@ expected_features = [
     "chemistry_score", "biology_score", "english_score", "geography_score"
 ]
 
-@recommendation.route('/api/predict', methods=['POST'])
+@recommendation.route('/api/predict', methods=['POST', 'OPTIONS'])
 def get_prediction():
+    # Handle OPTIONS requests for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     try:
         # Receive the user's input from the frontend
         data = request.json
@@ -128,8 +132,12 @@ def get_prediction():
             "note": f"Error occurred, using fallback. Error: {str(e)}"
         }), 200
 
-@recommendation.route('/api/career-details', methods=['POST'])
+@recommendation.route('/api/career-details', methods=['POST', 'OPTIONS'])
 def get_career_details():
+    # Handle OPTIONS requests for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     try:
         data = request.json
         career = data.get('career')
@@ -310,4 +318,85 @@ def get_career_details():
             },
             "pros": ["Information not available"],
             "cons": ["Information not available"]
+        }), 200
+
+@recommendation.route('/api/career-roadmap', methods=['POST', 'OPTIONS'])
+def get_career_roadmap():
+    # Handle OPTIONS requests for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+        
+    try:
+        data = request.json
+        career = data.get('career')
+        
+        if not career:
+            return jsonify({"error": "Career not specified"}), 400
+            
+        print(f"✅ Fetching roadmap for career: {career}")
+        
+        # Generate a simple roadmap as fallback
+        roadmap = {
+            "short-term goals": [
+                f"Complete a bachelor's degree in a field related to {career}",
+                "Take relevant courses and gain foundational knowledge",
+                "Build a portfolio of projects or work samples"
+            ],
+            "mid-term goals": [
+                "Obtain entry-level position in the field",
+                "Develop specialization in a particular area",
+                "Build professional network through industry events"
+            ],
+            "long-term goals": [
+                "Advance to senior-level positions",
+                "Become a subject matter expert",
+                "Consider leadership or management roles"
+            ],
+            "education requirements": [
+                f"Bachelor's degree in {career} or related field",
+                "Relevant certifications",
+                "Continuing education to stay current"
+            ],
+            "skills to develop": [
+                "Technical skills specific to the field",
+                "Communication and teamwork",
+                "Problem-solving and critical thinking"
+            ],
+            "experience needed": [
+                "Entry-level positions or internships",
+                "Volunteer work in related areas",
+                "Collaborative projects"
+            ],
+            "industry certifications": [
+                "Professional certifications relevant to the field",
+                "Specialized training programs",
+                "Online courses and workshops"
+            ],
+            "personal development recommendations": [
+                "Develop time management skills",
+                "Work on presentation and public speaking",
+                "Build resilience and adaptability"
+            ],
+            "networking suggestions": [
+                "Join professional associations",
+                "Attend industry conferences",
+                "Connect with professionals on LinkedIn"
+            ],
+            "milestones and checkpoints": [
+                "First year: Complete foundational education",
+                "3-5 years: Gain specialized experience",
+                "5-10 years: Move into advanced roles"
+            ]
+        }
+        
+        return jsonify({
+            "success": True,
+            "data": roadmap
+        }), 200
+            
+    except Exception as e:
+        print(f"❌ Error in roadmap: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
         }), 200
