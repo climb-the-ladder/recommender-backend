@@ -3,24 +3,54 @@ import os
 import sys
 import pandas as pd
 import joblib
+import random
 
 # Add the recommender-ai directory to the Python path
 sys.path.append('recommender-ai')
 
 recommendation = Blueprint('recommendation', __name__)
 
+# Define global variables
+model = None
+scaler = None
+label_encoder = None
+
 # Load model directly instead of making HTTP requests
 script_dir = os.path.dirname(os.path.abspath(__file__))
 base_dir = os.path.dirname(script_dir)  # Go up one directory to the app root
 
+# Default career options for fallback
+DEFAULT_CAREERS = [
+    "Software Engineer", "Data Scientist", "Doctor", "Lawyer", 
+    "Architect", "Teacher", "Accountant", "Mechanical Engineer"
+]
+
+# List all files in the recommender-models directory to help debug
 try:
-    model = joblib.load(os.path.join(base_dir, "recommender-models/career_xgb.pkl"))
-    scaler = joblib.load(os.path.join(base_dir, "recommender-models/scaler.pkl"))
-    label_encoder = joblib.load(os.path.join(base_dir, "recommender-models/label_encoder.pkl"))
+    model_files = os.listdir(os.path.join(base_dir, "recommender-models"))
+    print(f"Files in recommender-models directory: {model_files}")
+except Exception as e:
+    print(f"❌ Error listing model files: {str(e)}")
+
+# Load the models
+try:
+    model_path = os.path.join(base_dir, "recommender-models/career_xgb.pkl")
+    scaler_path = os.path.join(base_dir, "recommender-models/scaler.pkl")
+    encoder_path = os.path.join(base_dir, "recommender-models/label_encoder.pkl")
+    
+    print(f"Loading model from: {model_path}")
+    model = joblib.load(model_path)
+    
+    print(f"Loading scaler from: {scaler_path}")
+    scaler = joblib.load(scaler_path)
+    
+    print(f"Loading label encoder from: {encoder_path}")
+    label_encoder = joblib.load(encoder_path)
+    
     print("✅ Models loaded successfully")
 except Exception as e:
     print(f"❌ Error loading models: {str(e)}")
-    # We'll let the endpoint handle errors if models aren't loaded
+    # Models will remain None if loading fails
 
 # Expected input fields
 expected_features = [
@@ -35,6 +65,13 @@ def get_prediction():
         data = request.json
         print("\n✅ User Input Received:", data)
 
+        # Check if models are loaded
+        if model is None or scaler is None or label_encoder is None:
+            print("⚠️ Models not loaded. Using fallback response.")
+            # Return a random career as fallback
+            random_career = random.choice(DEFAULT_CAREERS)
+            return jsonify({"career": random_career, "note": "Using fallback response - models not loaded"}), 200
+        
         # Prepare data for prediction
         features = pd.DataFrame([data])
         
@@ -44,6 +81,10 @@ def get_prediction():
                 features[feature] = 0
                 
         features = features[expected_features]
+        
+        # Convert string values to float
+        for col in features.columns:
+            features[col] = features[col].astype(float)
         
         # Scale the features
         features_scaled = scaler.transform(features)
@@ -59,4 +100,9 @@ def get_prediction():
 
     except Exception as e:
         print("❌ Error:", str(e))
-        return jsonify({"error": str(e)}), 500
+        # Return a fallback response on error
+        random_career = random.choice(DEFAULT_CAREERS)
+        return jsonify({
+            "career": random_career, 
+            "note": f"Error occurred, using fallback. Error: {str(e)}"
+        }), 200
