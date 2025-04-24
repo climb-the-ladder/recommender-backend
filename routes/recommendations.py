@@ -10,7 +10,7 @@ sys.path.append('recommender-ai')
 
 recommendation = Blueprint('recommendation', __name__)
 
-# Define global variables upfront
+# Define global variables
 model = None
 scaler = None
 label_encoder = None
@@ -18,71 +18,65 @@ label_encoder = None
 # Load model directly instead of making HTTP requests
 script_dir = os.path.dirname(os.path.abspath(__file__))
 base_dir = os.path.dirname(script_dir)  # Go up one directory to the app root
-models_dir = os.path.join(base_dir, "recommender-models")
 
-# Check if the directory exists and what files are in it
-print(f"Looking for models in: {models_dir}")
-if os.path.exists(models_dir):
-    print(f"Models directory exists. Contents:")
-    try:
-        files = os.listdir(models_dir)
-        for file in files:
-            print(f"- {file}")
-    except Exception as e:
-        print(f"Error listing directory: {str(e)}")
-else:
-    print(f"Models directory does not exist!")
-    
-# Define specific model paths
-model_path = os.path.join(models_dir, "career_xgb.pkl")
-scaler_path = os.path.join(models_dir, "scaler.pkl")
-encoder_path = os.path.join(models_dir, "label_encoder.pkl")
-
-# Check individual files
-print(f"Checking specific model files:")
-print(f"Model file exists: {os.path.exists(model_path)}")
-print(f"Scaler file exists: {os.path.exists(scaler_path)}")
-print(f"Encoder file exists: {os.path.exists(encoder_path)}")
-
-# Try to load each model separately with individual error handling
-try:
-    print(f"Loading model from: {model_path}")
-    model = joblib.load(model_path)
-    print("✅ Model loaded successfully")
-except Exception as e:
-    print(f"❌ Error loading model: {str(e)}")
-    model = None
-
-try:
-    print(f"Loading scaler from: {scaler_path}")
-    scaler = joblib.load(scaler_path)
-    print("✅ Scaler loaded successfully")
-except Exception as e:
-    print(f"❌ Error loading scaler: {str(e)}")
-    scaler = None
-    
-try:
-    print(f"Loading encoder from: {encoder_path}")
-    label_encoder = joblib.load(encoder_path)
-    print("✅ Label encoder loaded successfully")
-except Exception as e:
-    print(f"❌ Error loading label encoder: {str(e)}")
-    label_encoder = None
-
-# Flag to track if models are loaded
-models_loaded = model is not None and scaler is not None and label_encoder is not None
-print(f"All models loaded successfully: {models_loaded}")
-
-# Expected input fields
-expected_features = [
-    "math_score", "history_score", "physics_score",
-    "chemistry_score", "biology_score", "english_score", "geography_score"
+# Define possible directories where models might be found
+possible_model_dirs = [
+    os.path.join(base_dir, "recommender-models"),  # Docker container path
+    os.path.join(base_dir, "recommender-models-main"),  # Local development path
 ]
+
+# Try to find models in one of the possible directories
+model_dir = None
+for dir_path in possible_model_dirs:
+    print(f"Checking for models in: {dir_path}")
+    if os.path.exists(dir_path):
+        try:
+            # Check if the directory contains model files
+            model_files = [f for f in os.listdir(dir_path) if f.endswith('.pkl')]
+            if model_files:
+                model_dir = dir_path
+                print(f"✅ Found models in: {model_dir}")
+                print(f"Model files: {model_files}")
+                break
+        except Exception as e:
+            print(f"❌ Error checking directory {dir_path}: {str(e)}")
+
+if not model_dir:
+    print("❌ Could not find a directory with model files.")
+
+# Load the models
+try:
+    if model_dir:
+        model_path = os.path.join(model_dir, "career_xgb.pkl")
+        scaler_path = os.path.join(model_dir, "scaler.pkl")
+        encoder_path = os.path.join(model_dir, "label_encoder.pkl")
+        
+        print(f"Loading model from: {model_path}")
+        model = joblib.load(model_path)
+        
+        print(f"Loading scaler from: {scaler_path}")
+        scaler = joblib.load(scaler_path)
+        
+        print(f"Loading label encoder from: {encoder_path}")
+        label_encoder = joblib.load(encoder_path)
+        
+        print("✅ Models loaded successfully")
+    else:
+        print("⚠️ No model directory found, will use fallback responses")
+except Exception as e:
+    print(f"❌ Error loading models: {str(e)}")
+    # Models will remain None if loading fails
 
 # Default career options for fallback
 DEFAULT_CAREERS = [
     "Software Engineer", "Data Scientist", "Doctor", "Lawyer", 
     "Architect", "Teacher", "Accountant", "Mechanical Engineer"
+]
+
+# Expected input fields
+expected_features = [
+    "math_score", "history_score", "physics_score",
+    "chemistry_score", "biology_score", "english_score", "geography_score"
 ]
 
 @recommendation.route('/api/predict', methods=['POST'])
@@ -91,13 +85,14 @@ def get_prediction():
         # Receive the user's input from the frontend
         data = request.json
         print("\n✅ User Input Received:", data)
-        
+
         # Check if models are loaded
-        if not models_loaded:
+        if model is None or scaler is None or label_encoder is None:
             print("⚠️ Models not loaded. Using fallback response.")
+            # Return a random career as fallback
             random_career = random.choice(DEFAULT_CAREERS)
             return jsonify({"career": random_career, "note": "Using fallback response - models not loaded"}), 200
-
+        
         # Prepare data for prediction
         features = pd.DataFrame([data])
         
