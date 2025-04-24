@@ -12,8 +12,12 @@ from gpt_chatbot import handle_chat
 chatbot = Blueprint('chatbot', __name__)
 career_chatbot = CareerChatbot()
 
-@chatbot.route('/api/chatbot-recommend', methods=['POST'])
+@chatbot.route('/api/chatbot-recommend', methods=['POST', 'OPTIONS'])
 def chatbot_recommend():
+    # Handle OPTIONS requests for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     data = request.json
     gpa = data.get('gpa')
     career = data.get('career')
@@ -28,8 +32,12 @@ def chatbot_recommend():
         "similar_careers": similar_careers
     })
 
-@chatbot.route('/api/chat', methods=['POST'])
+@chatbot.route('/api/chat', methods=['POST', 'OPTIONS'])
 def chat():
+    # Handle OPTIONS requests for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     data = request.json
     message = data.get('message')
     career = data.get('career')
