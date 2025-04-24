@@ -15,23 +15,29 @@ RUN git clone ${RECOMMENDER_DATA_REPO} recommender-data
 RUN git clone ${RECOMMENDER_MODELS_REPO} recommender-models
 RUN git clone ${RECOMMENDER_AI_REPO} recommender-ai
 
-# Verify if the model files exist
-RUN ls -la recommender-models || echo "No models directory found"
-RUN find recommender-models -type f -name "*.pkl" || echo "No PKL files found in models directory"
-
 # Copy application files
 COPY . .
 
-# Verify file structure after copying
-RUN echo "=== Checking final file structure ==="
-RUN ls -la
-RUN ls -la recommender-models || echo "Models directory not found"
-RUN find . -name "*.pkl" || echo "No PKL files found"
-
-# Install dependencies
+# Install dependencies before model training
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 RUN if [ -f recommender-ai/requirements.txt ]; then pip install --no-cache-dir -r recommender-ai/requirements.txt; fi
+
+# Create a copy of train_model.py in the recommender-models directory
+COPY recommender-models-main/train_model.py recommender-models/
+
+# Run the training script to generate models during build
+WORKDIR /app/recommender-models
+RUN echo "Starting model training..."
+RUN python train_model.py
+RUN echo "Model training completed."
+
+# Return to app directory
+WORKDIR /app
+
+# Verify the models were created
+RUN echo "=== Checking model files ==="
+RUN ls -la recommender-models/*.pkl || echo "No model files found"
 
 # Add AI code to Python path
 ENV PYTHONPATH="${PYTHONPATH}:/app:/app/recommender-ai"
