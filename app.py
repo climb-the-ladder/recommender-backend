@@ -6,8 +6,20 @@ import os
 
 app = Flask(__name__)
 
-# Configure CORS to allow requests from any origin
-CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"], "allow_headers": ["Content-Type"]}})
+# Configure CORS to allow requests from any origin with proper preflight handling
+CORS(app, 
+     resources={r"/*": {
+         "origins": "*", 
+         "methods": ["GET", "POST", "OPTIONS"],
+         "allow_headers": ["Content-Type", "Authorization"]
+     }},
+     supports_credentials=True)
+
+# Add a route to handle OPTIONS requests explicitly
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return '', 200
 
 app.register_blueprint(recommendation)
 app.register_blueprint(chatbot)
