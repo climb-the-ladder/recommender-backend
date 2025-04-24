@@ -28,12 +28,11 @@ RUN echo "=== Checking for processed data ==="
 RUN ls -la recommender-data/processed/ || echo "Processed data directory not found"
 RUN if [ -f recommender-data/processed/processed_dataset.csv ]; then echo "✅ Found processed dataset"; else echo "❌ Processed dataset not found"; fi
 
-# Create a copy of train_model.py in the recommender-models directory
-COPY recommender-models-main/train_model.py recommender-models/
-
 # Run the training script to generate models during build
 WORKDIR /app/recommender-models
 RUN echo "Starting model training..."
+
+# Run the train_model.py file from the cloned recommender-models repository 
 RUN python train_model.py
 RUN echo "Model training completed."
 
