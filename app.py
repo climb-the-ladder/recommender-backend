@@ -3,6 +3,14 @@ from flask_cors import CORS
 from routes.recommendations import recommendation
 from routes.chatbot import chatbot
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -15,6 +23,8 @@ CORS(app,
      }},
      supports_credentials=True)
 
+logger.info("CORS configured successfully")
+
 # Add a route to handle OPTIONS requests explicitly
 @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
 @app.route('/<path:path>', methods=['OPTIONS'])
@@ -24,6 +34,9 @@ def handle_options(path):
 app.register_blueprint(recommendation)
 app.register_blueprint(chatbot)
 
+logger.info("Blueprints registered successfully")
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
+    logger.info(f"Starting server on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
