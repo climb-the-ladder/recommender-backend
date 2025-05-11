@@ -1,0 +1,41 @@
+name: Python Tests
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout backend repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f test-requirements.txt ]; then pip install -r test-requirements.txt; fi
+        
+    - name: Run tests
+      run: |
+        # Run tests with our custom test runner that handles mocking
+        python run_tests.py
+        
+    - name: Generate test coverage report
+      run: |
+        coverage run -m pytest tests/
+        coverage report
+        coverage xml
+        
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false 
